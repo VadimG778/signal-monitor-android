@@ -1,0 +1,35 @@
+# Build systems
+**/build/
+.gradle/
+.kotlin/
+
+# IDE and operating system
+.idea/
+.fleet/
+*.iml
+.DS_Store
+
+# Local Android configuration
+**/local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Secrets and signing
+.env
+.env.*
+!.env.example
+secrets.properties
+keystore.properties
+key.txt
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# Generated artifacts
+*.apk
+*.aab
+*.apks
+*.hprof
+*.log

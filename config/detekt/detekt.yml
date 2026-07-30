@@ -1,0 +1,18 @@
+naming:
+  FunctionNaming:
+    ignoreAnnotated:
+      - Composable
+ktlint:
+  ClassSignature:
+    maxLineLength: 100
+  FunctionSignature:
+    maxLineLength: 100
+  MaximumLineLength:
+    active: true
+    maxLineLength: 100
+  MultilineExpressionWrapping:
+    active: false
+style:
+  UnusedPrivateFunction:
+    ignoreAnnotated:
+      - Preview

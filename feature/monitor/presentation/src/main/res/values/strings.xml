@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="screen_title">Signal Monitor</string>
+    <string name="axis_time">Time</string>
+    <string name="axis_value">Value</string>
+    <string name="generator_completed">Completed · %1$s</string>
+</resources>

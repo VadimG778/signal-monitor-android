@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: Version name without the v prefix
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@3f131e8634966bd73d06cc69884922b02e6faf92
+
+      - name: Set up JDK
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92
+
+      - name: Resolve version
+        env:
+          INPUT_VERSION_NAME: ${{ inputs.version_name }}
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            version_name="${GITHUB_REF_NAME#v}"
+          else
+            version_name="$INPUT_VERSION_NAME"
+          fi
+          if [[ ! "$version_name" =~ ^[0-9]+(\.[0-9]+){1,2}([.-][0-9A-Za-z]+)*$ ]]; then
+            echo "Version must look like 1.2 or 1.2.3-beta1" >&2
+            exit 1
+          fi
+          echo "VERSION_NAME=$version_name" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+
+      - name: Validate license secret
+        env:
+          SCICHART_LICENSE_KEY: ${{ secrets.SCICHART_LICENSE_KEY }}
+        run: test -n "$SCICHART_LICENSE_KEY"
+
+      - name: Build APK
+        env:
+          SCICHART_LICENSE_KEY: ${{ secrets.SCICHART_LICENSE_KEY }}
+        run: >-
+          ./gradlew --no-daemon --stacktrace
+          detekt detektMain detektTest
+          :feature:monitor:domain:lint lintDebug
+          :feature:monitor:domain:test
+          :feature:monitor:data:testDebugUnitTest
+          :feature:monitor:presentation:testDebugUnitTest
+          :app:testDebugUnitTest
+          assembleDebug
+          -PVERSION_NAME="$VERSION_NAME"
+          -PVERSION_CODE="$VERSION_CODE"
+
+      - name: Package APK
+        run: |
+          mkdir dist
+          artifact_name="signal-monitor-$VERSION_NAME.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/$artifact_name"
+          sha256sum "dist/$artifact_name" > "dist/$artifact_name.sha256"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag_name="v$VERSION_NAME"
+          flags=(--generate-notes --title "$tag_name")
+          if [[ "$GITHUB_REF_TYPE" != "tag" ]]; then
+            flags+=(--target "$GITHUB_SHA")
+          fi
+          gh release create "$tag_name" dist/*.apk dist/*.sha256 "${flags[@]}"
