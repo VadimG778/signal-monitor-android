@@ -41,6 +41,7 @@ class SignalMonitorScreenTest {
 
     @Test
     fun displaysAllTenGenerators() {
+        waitForGenerators()
         composeRule.onNodeWithText("Signal Monitor").assertIsDisplayed()
         val generatorListNode = composeRule.onNodeWithTag(GENERATOR_LIST)
 
@@ -53,6 +54,7 @@ class SignalMonitorScreenTest {
 
     @Test
     fun checkboxUpdatesLineVisibilityAndLegend() {
+        waitForGenerators()
         val generatorId = GeneratorId(1)
         val generatorName = "Generator #${generatorId.value}"
         val legendItem = hasText(generatorName) and hasAnyAncestor(hasTestTag(SIGNAL_LEGEND))
@@ -118,6 +120,7 @@ class SignalMonitorScreenTest {
 
     @Test
     fun timerUpdatesWhileScreenIsVisible() {
+        waitForGenerators()
         val generatorId = GeneratorId(1)
         composeRule
             .onNodeWithTag(GENERATOR_LIST)
@@ -132,6 +135,7 @@ class SignalMonitorScreenTest {
 
     @Test
     fun generatorsContinueWhileActivityIsInBackground() {
+        waitForGenerators()
         val generatorId = GeneratorId(1)
         composeRule
             .onNodeWithTag(GENERATOR_LIST)
@@ -153,6 +157,15 @@ class SignalMonitorScreenTest {
                 .onNodeWithTag(generatorTimer(generatorId))
                 .fetchSemanticsNode()
                 .config[SemanticsProperties.Text] != initialValue
+        }
+    }
+
+    private fun waitForGenerators() {
+        composeRule.waitUntil(timeoutMillis = 5_000L) {
+            composeRule
+                .onAllNodes(hasTestTag(generatorItem(GeneratorId(1))))
+                .fetchSemanticsNodes()
+                .isNotEmpty()
         }
     }
 
